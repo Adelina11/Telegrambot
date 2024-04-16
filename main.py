@@ -23,7 +23,7 @@ translate_word1 = ''
 translate_word2 = ''
 MSG = "Повторим слова, {}?"
 
-TOKEN_API = '5815099989:AAEQ5vCjeKNhognqWdL51WUVhLrkW63m1HY'
+TOKEN_API = "5815099989:AAEQ5vCjeKNhognqWdL51WUVhLrkW63m1HY"
 
 bot = Bot(TOKEN_API)
 storage = MemoryStorage()
@@ -63,22 +63,47 @@ async def start(message: types.Message):
     start_text4 = "Вы можете добавлять перевод слов вручную или автоматически.\n"
 
     start_text5 = "Используйте кнопки ниже.\n"
-    start_text6 = 'Нажав "Настроить ремайндер", Вы будете получать напоминания о повторении слов каждые 24 часа 7 дней '
-    start_text6_2 = "подряд.\n"
+    start_text6 = 'Нажав "Настроить ремайндер", Вы получите напоминание о повторенни слов завтра!'
 
     start_text7 = "Возвращайтесь на /start для возможности настройки,\n"
     start_text8 = "Чтобы просмотреть и повторить слова используйте /view"
 
-    start_text = start_text + start_text2 + start_text3 + start_text4 + start_text5 + start_text6 + start_text6_2
+    start_text = start_text + start_text2 + start_text3 + start_text4 + start_text5 + start_text6
     start_text += start_text7 + start_text8
 
     ikb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("Добавить слово", callback_data='add')],
         [InlineKeyboardButton("Удалить слово", callback_data='delete')],
+        [InlineKeyboardButton("Повторить слова", callback_data='repeat')],
         [InlineKeyboardButton("Настроить ремайндер", callback_data='remind')]
     ])
 
     await message.bot.send_message(message.from_user.id, start_text, reply_markup=ikb)
+
+
+# Повторение слов
+@dp.callback_query_handler(text='repeat')
+async def repeat(callback: types.CallbackQuery) -> None:
+    kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton('/ready')],
+        [KeyboardButton('/cancel')]
+    ], resize_keyboard=True)
+
+    await callback.message.answer("По очереди Вам будут отправлены слова из Вашего списка, а через 5 секунд их "
+                                  "перевод. Таким образом, Вы сможете сначала попробовать вспомнить сами, "
+                                  "а затем увидеть верный ответ. Если вы готовы, отправьте /ready,\nЕсли хотите "
+                                  "отменить действие и закончить повтор слов, отправьте /cancel", reply_markup=kb)
+
+
+# Повторение
+@dp.message_handler(commands='ready', state="*")
+async def ready(message: types.Message):
+    dictionary = BotDB.get_records_repeat(message.from_user.id).split("\n")[:-1]
+    for i in dictionary:
+        await message.answer("Слово: " + i.split(" - ")[0])
+        await asyncio.sleep(5)
+        await message.answer("Перевод: " + i.split(" - ")[1] + ";")
+    await message.answer('Чтобы просмотреть и повторить слова используйте /view')
 
 
 # Отмена действия
@@ -99,8 +124,6 @@ async def cancel(message: types.Message, state: FSMContext):
 # Функция для добавления слов1
 @dp.callback_query_handler(text='add')
 async def add(callback: types.CallbackQuery) -> None:
-    await callback.message.delete()
-
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton('/cancel')]
     ], resize_keyboard=True)
@@ -167,9 +190,8 @@ async def remind(message: types.Message) -> None:
 
     logging.info(f'{user_id} {user_full_name} {time.asctime()}')
 
-    for i in range(7):
-        await asyncio.sleep(60 * 60 * 24)
-        await bot.send_message(user_id, MSG.format(user_name))
+    await asyncio.sleep(86400)
+    await bot.send_message(user_id, MSG.format(user_name))
 
 
 # Функция для перевода слов1
@@ -180,7 +202,8 @@ async def translate(message: types.Message):
     ], resize_keyboard=True)
 
     await message.answer(
-        'Напишите язык перевода на английском языке,\nЕсли хотите отменить действие, отправьте /cancel',
+        'Напишите язык перевода. Например, "Русский" или "Английский"\nЕсли хотите отменить действие, отправьте '
+        '/cancel',
         reply_markup=kb)
 
     await TranslateStateGroup.last()
@@ -191,7 +214,7 @@ async def translate(message: types.Message):
 async def translate2(message: types.Message, state: FSMContext):
     global translate_word2
 
-    lang = message.text
+    lang = translator.translate(message.text, dest="English").text
     result = ''
 
     kb = ReplyKeyboardMarkup(keyboard=[
@@ -246,10 +269,11 @@ async def handle_word_translate(message: types.Message, state: FSMContext) -> No
 async def view(message: types.Message) -> None:
     ikb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton("Добавить слово", callback_data='add')],
-        [InlineKeyboardButton("Удалить слово", callback_data='delete')]
+        [InlineKeyboardButton("Удалить слово", callback_data='delete')],
+        [InlineKeyboardButton("Повторить слова", callback_data='repeat')]
     ])
 
-    await message.answer("Ваш список слов:\n"+BotDB.get_records(message.from_user.id), reply_markup=ikb)
+    await message.answer("Ваш список слов:\n" + BotDB.get_records(message.from_user.id), reply_markup=ikb)
 
 
 if __name__ == "__main__":
