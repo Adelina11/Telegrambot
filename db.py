@@ -41,6 +41,18 @@ class BotDB:
 
         return info
 
+    def get_records_repeat(self, user_id):
+        c = 0
+
+        info = ''
+        m = self.cursor.execute("SELECT * FROM records where user_id = ?", (self.get_user_id(user_id),)).fetchall()
+
+        for i in m:
+            c += 1
+            info += f"{i[2]}\n"
+
+        return info
+
     def close(self):
         self.cursor.close()
         self.conn.close()
