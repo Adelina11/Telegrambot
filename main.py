@@ -198,12 +198,17 @@ async def remind(message: types.Message) -> None:
 @dp.message_handler(commands='translate', state='*')
 async def translate(message: types.Message):
     kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton('/cancel')]
+        [KeyboardButton('/cancel')],
+        [KeyboardButton('Русский')],
+        [KeyboardButton('Английский')],
+        [KeyboardButton('Немецкий')],
+        [KeyboardButton('Французский')],
+        [KeyboardButton('Китайский (упрощённый)')]
     ], resize_keyboard=True)
 
     await message.answer(
         'Напишите язык перевода. Например, "Русский" или "Английский"\nЕсли хотите отменить действие, отправьте '
-        '/cancel',
+        '/cancel\n',
         reply_markup=kb)
 
     await TranslateStateGroup.last()
@@ -218,8 +223,12 @@ async def translate2(message: types.Message, state: FSMContext):
     result = ''
 
     kb = ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton('/add_word')],
-        [KeyboardButton('/cancel')]
+        [KeyboardButton('/cancel')],
+        [KeyboardButton('Русский')],
+        [KeyboardButton('Английский')],
+        [KeyboardButton('Немецкий')],
+        [KeyboardButton('Французский')],
+        [KeyboardButton('Китайский (упрощённый)')]
     ], resize_keyboard=True)
 
     try:
@@ -231,9 +240,15 @@ async def translate2(message: types.Message, state: FSMContext):
             [KeyboardButton('/cancel')]
         ], resize_keyboard=True)
 
+    kb = ReplyKeyboardMarkup(keyboard=[
+        [KeyboardButton('/add_word')],
+        [KeyboardButton('/cancel')]
+    ], resize_keyboard=True)
+
     translate_word2 = result.text
 
-    await message.answer('Перевод слова: ' + result.text + '\nДобавить перевод?\nЕсли хотите отменить действие, '
+    await message.answer('Перевод слова: ' + result.text + '\nДобавить перевод? /add_word\nЕсли хотите отменить '
+                                                           'действие, '
                                                            'отправьте /cancel', reply_markup=kb)
     await state.finish()
 
